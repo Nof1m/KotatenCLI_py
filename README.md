@@ -14,7 +14,7 @@ Mangadex
 
 Bem-vindo(a)! digite o título do mangá que você está procurando: (Title)
 
-## 2º Select manga from 0 to 10
+## 2º Select manga from 0 to 9
 
 0 - Manga
 
