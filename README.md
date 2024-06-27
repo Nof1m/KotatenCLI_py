@@ -3,7 +3,10 @@
 ## Download manga with Terminal
 
 APIs KotatenCLI V1:
+
 Mangadex
+
+
 
 # HOW TO USE
 
