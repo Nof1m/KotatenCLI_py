@@ -24,7 +24,7 @@ Examples: en, pt-br, fr (Make sure the manga you want has the language available
 
 ## 4º Write the directory where you want to save the manga
 
-Digite o caminho completo do diretório onde deseja salvar os capítulos: (You can write anything here that will save in the Kotaten folder, or you can select the directory you want such as: "C:Mangas"
+Digite o caminho completo do diretório onde deseja salvar os capítulos: (You can write anything here that will save in the Kotaten folder, or you can select the directory you want such as: "C:\Mangas"
 
 ## 5º Wait to download all available chapters
 
