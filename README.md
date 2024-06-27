@@ -15,7 +15,7 @@ Bem-vindo(a)! digite o título do mangá que você está procurando: (Title)
 
 0 - Manga
 
-1 - Manga2
+1 - Manga1
 
 Select Manga: 0 or 1
 
