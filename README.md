@@ -1,2 +1,3 @@
-KOTATEN CLI
-Download manga with Terminal
+#KOTATEN CLI
+
+##Download manga with Terminal
