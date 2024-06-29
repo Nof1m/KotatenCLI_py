@@ -1,4 +1,4 @@
-# KOTATEN CLI PYTHON
+# KotatenCLI PYTHON
 
 ## Download manga with Terminal
 
