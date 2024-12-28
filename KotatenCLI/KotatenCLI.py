@@ -1,5 +1,5 @@
 import httpx, os, zipfile, shutil
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 def obter_capitulos_por_idioma(manga_id, idioma):
     url = "https://api.mangadex.org/"
@@ -10,7 +10,7 @@ def obter_capitulos_por_idioma(manga_id, idioma):
         "order[chapter]": "asc",
         "limit": 500
     }
-    r = httpx.Client().get(f"{url}{endpoint}", params=params)
+    r = httpx.get(f"{url}{endpoint}", params=params)
 
     if r.status_code == 200:
         capitulos = r.json()["data"]
@@ -18,23 +18,32 @@ def obter_capitulos_por_idioma(manga_id, idioma):
     else:
         print(f"Erro ao obter capítulos: {r.status_code}")
         return None
-    
-def download_page(session, base_url, hash_, page, capitulo_dir):
+
+def download_page(session, base_url, hash_, page, capitulo_dir, max_retries=5):
     url = f"{base_url}/data/{hash_}/{page}"
-    response = session.get(url)
-    if response.status_code == 200:
-        file_name = os.path.basename(page)
-        with open(os.path.join(capitulo_dir, file_name), mode="wb") as f:
-            f.write(response.content)
-    else:
-        print(f"Erro ao baixar página {page}, status {response.status_code}")
+    retries = 0
+    while retries < max_retries:
+        response = session.get(url)
+        if response.status_code == 200:
+            file_name = os.path.basename(page)
+            with open(os.path.join(capitulo_dir, file_name), mode="wb") as f:
+                f.write(response.content)
+            return True
+        else:
+            retries += 1
+            print(f"Erro ao baixar página {page}, tentativa {retries}, status {response.status_code}")
+    print(f"Falha ao baixar página {page} após {max_retries} tentativas.")
+    return False
 
 def salvar_capitulo(capitulo, diretorio, formato_imagem):
     imagens_id = capitulo['id']
     imagens_url = httpx.get(f"https://api.mangadex.org/at-home/server/{imagens_id}").json()
     capitulo_number = capitulo['attributes']['chapter']
+    volume = capitulo['attributes'].get('volume', 'None')
 
-    capitulo_dir = os.path.join(diretorio, f"Capítulo {capitulo_number}")
+    volume_dir = os.path.join(diretorio, f"Volume {volume}")
+    os.makedirs(volume_dir, exist_ok=True)
+    capitulo_dir = os.path.join(volume_dir, f"Capítulo {capitulo_number}")
     os.makedirs(capitulo_dir, exist_ok=True)
 
     print(f"Baixando capítulo {capitulo_number}")
@@ -43,35 +52,36 @@ def salvar_capitulo(capitulo, diretorio, formato_imagem):
     hash_ = imagens_url['chapter']['hash']
     pages = imagens_url['chapter']['data']
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    temp_files = []
+    with ThreadPoolExecutor(max_workers=10) as executor:
         session = httpx.Client()
-        futures = []
-        for page in pages:
-            futures.append(executor.submit(download_page, session, base_url, hash_, page, capitulo_dir))
-        
-        for future in as_completed(futures):
-            future.result()
+        future_to_page = {
+            executor.submit(download_page, session, base_url, hash_, page, capitulo_dir): page for page in pages
+        }
+        for future in future_to_page:
+            page = future_to_page[future]
+            if not future.result():
+                print(f"Falha permanente no download da página {page}. Verifique a conexão ou o servidor.")
 
     if formato_imagem == "cbz":
-        temp_files = [os.path.join(capitulo_dir, page) for page in os.listdir(capitulo_dir)]
-        criar_cbz(temp_files, capitulo_dir)
-        for temp_file in temp_files:
-            os.remove(temp_file)
+        criar_cbz(capitulo_dir)
         shutil.rmtree(capitulo_dir)
 
-def criar_cbz(temp_files, capitulo_dir):
-    with zipfile.ZipFile(f"{capitulo_dir}.cbz", 'w') as cbz_file:
-        for temp_file in temp_files:
-            filename = os.path.basename(temp_file)
-            cbz_file.write(temp_file, arcname=filename)
-
-    print(f"CBZ criado: {capitulo_dir}.cbz")
+def criar_cbz(capitulo_dir):
+    cbz_path = f"{capitulo_dir}.cbz"
+    with zipfile.ZipFile(cbz_path, 'w') as cbz_file:
+        for root, _, files in os.walk(capitulo_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, capitulo_dir)
+                cbz_file.write(file_path, arcname)
+    print(f"CBZ criado: {cbz_path}")
 
 def main():
     pesquisa = input("Bem-vindo(a)! Digite o título do mangá que você está procurando: ")
     base_url = "https://api.mangadex.org/"
 
-    r = httpx.Client().get(
+    r = httpx.get(
         f"{base_url}/manga",
         params={"title": pesquisa}
     )
@@ -112,4 +122,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-print = input("Aperte Enter para fechar... ")
+input("Aperte Enter para fechar... ")
